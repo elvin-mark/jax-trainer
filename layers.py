@@ -61,40 +61,6 @@ class Linear:
         return addmm(x, W, b=b), cached_values
 
 
-class Conv2d:
-    def __init__(self, in_planes, out_planes, bias=True, kernel_size=3, stride=1, padding=0):
-        self.in_planes = in_planes
-        self.out_planes = out_planes
-        self.bias = bias
-        self.kernel_size = kernel_size
-        self.strides = (stride, stride)
-        self.paddings = ((padding, padding), (padding, padding))
-
-        @jit
-        def conv_(x, W):
-            return conv2d(x, W, strides=self.strides, paddings=self.paddings)
-        self.conv_ = conv_
-
-    def init_params(self, key):
-        params = {}
-        cached_values = None
-        key_W, key_b = random.split(key)
-        params["W"] = random.normal(key_W, (self.out_planes, self.in_planes,
-                                    self.kernel_size, self.kernel_size)) / self.in_planes ** 0.5
-        if self.bias:
-            params["b"] = random.normal(
-                key_b, (1, self.out_planes, 1, 1)) / self.in_planes ** 0.5
-        return params, cached_values
-
-    def apply(self, params, x, cached_values=None):
-        W = params["W"]
-        b = None if "b" not in params else params["b"]
-        o = self.conv_(x, W)
-        if b is not None:
-            o = o + b
-        return o, cached_values
-
-
 class Conv1d:
     def __init__(self, in_planes, out_planes, bias=True, kernel_size=3, stride=1, padding=0):
         self.in_planes = in_planes
@@ -129,6 +95,40 @@ class Conv1d:
         return o, cached_values
 
 
+class Conv2d:
+    def __init__(self, in_planes, out_planes, bias=True, kernel_size=3, stride=1, padding=0):
+        self.in_planes = in_planes
+        self.out_planes = out_planes
+        self.bias = bias
+        self.kernel_size = kernel_size
+        self.strides = (stride, stride)
+        self.paddings = ((padding, padding), (padding, padding))
+
+        @jit
+        def conv_(x, W):
+            return conv2d(x, W, strides=self.strides, paddings=self.paddings)
+        self.conv_ = conv_
+
+    def init_params(self, key):
+        params = {}
+        cached_values = None
+        key_W, key_b = random.split(key)
+        params["W"] = random.normal(key_W, (self.out_planes, self.in_planes,
+                                    self.kernel_size, self.kernel_size)) / self.in_planes ** 0.5
+        if self.bias:
+            params["b"] = random.normal(
+                key_b, (1, self.out_planes, 1, 1)) / self.in_planes ** 0.5
+        return params, cached_values
+
+    def apply(self, params, x, cached_values=None):
+        W = params["W"]
+        b = None if "b" not in params else params["b"]
+        o = self.conv_(x, W)
+        if b is not None:
+            o = o + b
+        return o, cached_values
+
+
 class MaxPool1d:
     def __init__(self, kernel_size=2):
         self.window = (kernel_size, )
@@ -140,7 +140,7 @@ class MaxPool1d:
         self.max_pool_ = max_pool_
 
     def init_params(self, key):
-        return {}
+        return {}, {}
 
     def apply(self, params, x, cached_values=None):
         return self.max_pool_(x), cached_values
@@ -157,7 +157,7 @@ class MaxPool2d:
         self.max_pool_ = max_pool_
 
     def init_params(self, key):
-        return {}
+        return {}, {}
 
     def apply(self, params, x, cached_values=None):
         return self.max_pool_(x), cached_values
@@ -288,8 +288,8 @@ class BasicResidualBlock:
         o, cached_values_["direct"] = self.direct.apply(
             params["direct"], x, cached_values=cached_values["direct"])
 
-        i, cached_values_["shortcut"] = self.shortcut(params["shortcut"], x,
-                                                      cached_values=cached_values["shortcur"])
+        i, cached_values_["shortcut"] = self.shortcut.apply(params["shortcut"], x,
+                                                            cached_values=cached_values["shortcut"])
 
         o = o + i
         o, cached_values_["relu"] = self.relu.apply(

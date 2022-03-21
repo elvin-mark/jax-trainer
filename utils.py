@@ -54,7 +54,6 @@ def addmm(x, W, b=None):
     return x @ W + b
 
 
-@jit
 def conv1d(x, W, b=None, strides=(1,), paddings=((0, 0),)):
     o = conv_with_general_padding(x, W, strides, paddings, (1,), (1,))
     if b is not None:
@@ -62,7 +61,6 @@ def conv1d(x, W, b=None, strides=(1,), paddings=((0, 0),)):
     return o
 
 
-@jit
 def conv2d(x, W, b=None, strides=(1, 1), paddings=((0, 0), (0, 0))):
     o = conv_with_general_padding(x, W, strides, paddings, (1, 1), (1, 1))
     if b is not None:
@@ -70,14 +68,12 @@ def conv2d(x, W, b=None, strides=(1, 1), paddings=((0, 0), (0, 0))):
     return o
 
 
-@jit
 def max_pool1d(x, kernel_size=(2,)):
     o = reduce_window(x, -jnp.inf, lax.max,
                       (1, 1, *kernel_size), (1, 1, *kernel_size), ((0, 0), (0, 0), (0, 0)))
     return o
 
 
-@jit
 def max_pool2d(x, kernel_size=(2, 2)):
     o = reduce_window(x, -jnp.inf, lax.max,
                       (1, 1, *kernel_size), (1, 1, *kernel_size), ((0, 0), (0, 0), (0, 0), (0, 0)))
