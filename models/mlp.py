@@ -1,28 +1,11 @@
-from utils import act_fun_dict, addmm
-from jax import random
+from layers import Sequential, Linear
 
 
-class MLP:
-    def __init__(self, layers, act_fun="relu"):
-        self.layers = layers
-        self.act_fun = act_fun_dict[act_fun]
-
-    def init_params(self, key):
-        params = {}
-        cached_values = None
-        keyW, keyb = random.split(key)
-        for k, (i, o) in enumerate(zip(self.layers[:-1], self.layers[1:])):
-            W = random.normal(keyW, (i, o)) / i ** 0.5
-            b = random.normal(keyb, (o,)) / i ** 0.5
-            params[str(k)] = {"W": W, "b": b}
-        return params, cached_values
-
-    def apply(self, params, x, cached_values=None):
-        o = x
-        for i in range(len(params) - 1):
-            W, b = params[str(i)]["W"], params[str(i)]["b"]
-            o = self.act_fun(addmm(o, W, b))
-        last = len(params) - 1
-        W, b = params[str(last)]["W"], params[str(last)]["b"]
-        o = addmm(o, W, b)
-        return o, cached_values
+def create_mlp(layers, act_fun):
+    modules = []
+    for i, o in zip(layers[:-1], layers[1:]):
+        modules.append(Linear(i, o))
+        modules.append(act_fun())
+    modules.pop(-1)
+    model = Sequential(*modules)
+    return model

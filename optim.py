@@ -1,5 +1,5 @@
-from functools import cache
-from jax import grad, value_and_grad
+from jax import value_and_grad
+import jax
 
 
 class SGD:
@@ -10,9 +10,5 @@ class SGD:
     def update(self, params, x, t, cached_values=None):
         (v, cached_values), g = self.grad_loss_fn(
             params, x, t, cached_values=cached_values)
-        new_params = {}
-        for l in params:
-            new_params[l] = {}
-            for k in params[l]:
-                new_params[l][k] = params[l][k] - self.lr * g[l][k]
+        new_params = jax.tree_map(lambda p, g: p - self.lr * g, params, g)
         return v, new_params, cached_values
