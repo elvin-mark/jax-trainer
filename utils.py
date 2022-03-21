@@ -112,6 +112,14 @@ def batch_norm2d(x, gamma, beta, running_mean, running_var, momentum=0.1, traini
     return o, running_mean_, running_var_
 
 
+@jit
+def dropout(x, p=0.1, training=True):
+    if training:
+        mask = (np.random.random(x.shape) > p) * 1/p
+        return x * mask
+    return x
+
+
 """
 Loss Functions
 """

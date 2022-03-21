@@ -1,5 +1,5 @@
 from jax import random, jit
-from utils import addmm, batch_norm1d, batch_norm2d, conv1d, conv2d, leaky_relu, max_pool2d, relu, sigmoid, tanh, max_pool1d
+from utils import addmm, batch_norm1d, batch_norm2d, conv1d, conv2d, dropout, leaky_relu, max_pool2d, relu, sigmoid, tanh, max_pool1d
 import numpy as np
 
 
@@ -214,6 +214,30 @@ class BatchNorm2d:
         cached_values = {}
         cached_values["running_mean"] = rm
         cached_values["running_var"] = rv
+        return o, cached_values
+
+
+class Dropout1d:
+    def __init__(self, p=0.1):
+        self.p = p
+
+    def init_params(self, key):
+        return {}, {}
+
+    def apply(self, params, x, cached_values=None):
+        o = dropout(x, p=self.p)
+        return o, cached_values
+
+
+class Dropout2d:
+    def __init__(self, p=0.1):
+        self.p = p
+
+    def init_params(self, key):
+        return {}, {}
+
+    def apply(self, params, x, cached_values=None):
+        o = dropout(x, p=self.p)
         return o, cached_values
 
 
