@@ -1,4 +1,3 @@
-from ast import Str
 from layers import BasicResidualBlock1d, BasicResidualBlock2d, BatchNorm1d, BatchNorm2d, Conv1d, Conv2d, Flatten, Linear, MaxPool1d, MaxPool2d, ReLU, Sequential
 
 

@@ -1,6 +1,8 @@
+from functools import partial
 from jax import random, jit
-from utils import addmm, batch_norm1d, batch_norm2d, conv1d, conv2d, dropout, leaky_relu, max_pool2d, relu, sigmoid, tanh, max_pool1d
+from utils import addmm, batch_norm1d, batch_norm2d, conv1d, conv2d, dropout, gelu, leaky_relu, max_pool2d, relu, sigmoid, silu, tanh, max_pool1d
 import numpy as np
+from jax.lax import scan
 
 
 class Sigmoid:
@@ -36,6 +38,22 @@ class LeakyReLU:
 
     def apply(self, params, x, cached_values=None):
         return leaky_relu(x, alpha=self.alpha), cached_values
+
+
+class SiLU:
+    def init_params(self, key):
+        return {}, {}
+
+    def apply(self, params, x, cached_values=None):
+        return silu(x), cached_values
+
+
+class GELU:
+    def init_params(self, key):
+        return {}, {}
+
+    def apply(self, params, x, cached_values=None):
+        return gelu(x), cached_values
 
 
 class Linear:
@@ -361,3 +379,45 @@ class BasicResidualBlock1d:
         o, cached_values_["relu"] = self.relu.apply(
             params["relu"], o, cached_values=cached_values["relu"])
         return o, cached_values_
+
+
+class GRU:
+    def __init__(self, input_size, hidden_size):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+
+    def init_params(self, key):
+        params = {}
+        params["Wir"] = random.normal(key, (self.input_size, self.hidden_size))
+        params["bir"] = random.normal(key, (self.hidden_size,))
+        params["Whr"] = random.normal(
+            key, (self.hidden_size, self.hidden_size))
+        params["bhr"] = random.normal(key, (self.hidden_size,))
+        params["Wiz"] = random.normal(key, (self.input_size, self.hidden_size))
+        params["biz"] = random.normal(key, (self.hidden_size,))
+        params["Whz"] = random.normal(
+            key, (self.hidden_size, self.hidden_size))
+        params["bhz"] = random.normal(key, (self.hidden_size,))
+        params["Win"] = random.normal(key, (self.input_size, self.hidden_size))
+        params["bin"] = random.normal(key, (self.hidden_size,))
+        params["Whn"] = random.normal(
+            key, (self.hidden_size, self.hidden_size))
+        params["bhn"] = random.normal(key, (self.hidden_size,))
+
+        return params, {}
+
+    def apply(self, params, x, cached_values=None):
+        def apply_fn(params, h, seq):
+            Wir, bir, Whr, bhr = params["Wir"], params["bir"], params["Whr"], params["bhr"]
+            Wiz, biz, Whz, bhz = params["Wiz"], params["biz"], params["Whz"], params["bhz"]
+            Win, bin, Whn, bhn = params["Win"], params["bin"], params["Whn"], params["bhn"]
+            r = sigmoid(seq @ Wir + bir + h @ Whr + bhr)
+            z = sigmoid(seq @ Wiz + biz + h @ Whz + bhz)
+            n = tanh(seq @ Win + bin + r * (h @ Whn + bhn))
+            h = (1 - z) * n + z * h
+            return h, h
+        _, N, L = x.shape
+        hidden = np.zeros((N, self.hidden_size))
+        fun_f = partial(apply_fn, params)
+        _, o = scan(fun_f, hidden, x)
+        return o, cached_values

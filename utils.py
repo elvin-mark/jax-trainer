@@ -31,11 +31,23 @@ def leaky_relu(x, alpha=0.1):
 
 
 @jit
+def silu(x):
+    return x * sigmoid(x)
+
+
+@jit
+def gelu(x):
+    """
+    Approximated form of GELU
+    """
+    return x * sigmoid(1.702*x)
+
+
+@jit
+@vmap
 def softmax(x):
-    def _softmax(x):
-        e = jnp.exp(x)
-        return e / jnp.sum(e)
-    return vmap(_softmax)(x)
+    e = jnp.exp(x)
+    return e / jnp.sum(e)
 
 
 @jit
@@ -43,8 +55,9 @@ def logsoftmax(x):
     return jnp.log(softmax(x))
 
 
-act_fun_dict = {"sigmoid": sigmoid, "tanh": tanh,
-                "relu": relu, "leaky_relu": leaky_relu}
+"""
+Neural Network operations
+"""
 
 
 @jit
