@@ -279,7 +279,7 @@ class Sequential:
         return o, cached_values_
 
 
-class BasicResidualBlock:
+class BasicResidualBlock2d:
     def __init__(self, in_planes, out_planes):
         self.direct = Sequential(
             Conv2d(in_planes, out_planes, bias=False,
@@ -295,6 +295,48 @@ class BasicResidualBlock:
             self.shortcut = Sequential(
                 Conv2d(in_planes, out_planes, bias=False, kernel_size=1),
                 BatchNorm2d(out_planes)
+            )
+
+    def init_params(self, key):
+        params = {}
+        cached_values = {}
+        params["direct"], cached_values["direct"] = self.direct.init_params(
+            key)
+        params["relu"], cached_values["relu"] = self.relu.init_params(key)
+        params["shortcut"], cached_values["shortcut"] = self.shortcut.init_params(
+            key)
+        return params, cached_values
+
+    def apply(self, params, x, cached_values=None):
+        cached_values_ = {}
+        o, cached_values_["direct"] = self.direct.apply(
+            params["direct"], x, cached_values=cached_values["direct"])
+
+        i, cached_values_["shortcut"] = self.shortcut.apply(params["shortcut"], x,
+                                                            cached_values=cached_values["shortcut"])
+
+        o = o + i
+        o, cached_values_["relu"] = self.relu.apply(
+            params["relu"], o, cached_values=cached_values["relu"])
+        return o, cached_values_
+
+
+class BasicResidualBlock1d:
+    def __init__(self, in_planes, out_planes):
+        self.direct = Sequential(
+            Conv1d(in_planes, out_planes, bias=False,
+                   kernel_size=3, padding=1),
+            BatchNorm1d(out_planes),
+            ReLU(),
+            Conv1d(out_planes, out_planes, bias=False, kernel_size=1),
+            BatchNorm1d(out_planes)
+        )
+        self.relu = ReLU()
+        self.shortcut = Sequential()
+        if in_planes != out_planes:
+            self.shortcut = Sequential(
+                Conv1d(in_planes, out_planes, bias=False, kernel_size=1),
+                BatchNorm1d(out_planes)
             )
 
     def init_params(self, key):
