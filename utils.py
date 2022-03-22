@@ -194,8 +194,8 @@ class Dataloader:
         batch_y = []
         for i in range(tmp, self.curr):
             x_, y_ = self.ds[i]
-            batch_x.append(x_)
-            batch_y.append(y_)
+            batch_x.append(x_.reshape((1, *x_.shape)))
+            batch_y.append(y_.reshape((1, *y_.shape)))
         return np.vstack(batch_x), np.vstack(batch_y)
 
     def __iter__(self):
